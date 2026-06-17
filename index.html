@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Motif Designer</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+
+<style>
+
+body{
+
+font-family:Arial;
+text-align:center;
+background:#f4f4f4;
+
+}
+
+
+button{
+
+padding:10px;
+margin:5px;
+cursor:pointer;
+
+}
+
+
+
+#editorScreen,
+#libraryScreen,
+#savedScreen{
+
+display:none;
+
+}
+
+
+
+#homeScreen button{
+
+display:block;
+width:250px;
+margin:15px auto;
+
+}
+
+
+
+#grid{
+
+display:grid;
+
+grid-template-columns:repeat(16,30px);
+
+grid-template-rows:repeat(16,30px);
+
+gap:1px;
+
+justify-content:center;
+
+margin:20px;
+
+}
+
+
+
+.cell{
+
+width:30px;
+height:30px;
+
+background:white;
+
+border:1px solid gray;
+
+}
+
+
+
+.colors{
+
+display:flex;
+justify-content:center;
+gap:10px;
+
+}
+
+
+.color-btn{
+
+width:35px;
+height:35px;
+
+}
+
+
+</style>
+
+</head>
+
+
+
+<body>
+
+
+
+<div id="homeScreen">
+
+
+<h1>Motif Designer</h1>
+
+
+<button onclick="openEditor()">
+Create New Design
+</button>
+
+
+<button onclick="openSaved()">
+Saved Designs
+</button>
+
+
+<button onclick="openLibrary()">
+Motif Library
+</button>
+
+
+</div>
+
+
+
+
+
+
+
+
+<div id="editorScreen">
+
+
+<h2>Motif Editor</h2>
+
+
+<input id="designName"
+placeholder="Design Name">
+
+
+<br>
+
+
+<textarea id="notes"
+placeholder="Notes"></textarea>
+
+
+<br>
+
+
+
+<div class="colors">
+
+
+<button class="color-btn"
+style="background:red"
+onclick="setColor('red')"></button>
+
+
+<button class="color-btn"
+style="background:blue"
+onclick="setColor('blue')"></button>
+
+
+<button class="color-btn"
+style="background:green"
+onclick="setColor('green')"></button>
+
+
+<button class="color-btn"
+style="background:black"
+onclick="setColor('black')"></button>
+
+
+</div>
+
+
+
+
+<button onclick="tool='draw'">
+Draw
+</button>
+
+
+<button onclick="tool='erase'">
+Erase
+</button>
+
+
+<button onclick="clearGrid()">
+Clear
+</button>
+
+
+
+<button onclick="saveDesign()">
+Save
+</button>
+
+
+
+<button onclick="exportImage()">
+Share Image
+</button>
+
+
+<button onclick="exportData()">
+Share Data
+</button>
+
+
+<button onclick="exportPDF()">
+Share PDF
+</button>
+
+
+
+<button onclick="goHome()">
+Home
+</button>
+
+
+
+
+<div id="grid"></div>
+
+
+
+<h3>
+Price ₹<span id="price">306</span>
+</h3>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<div id="savedScreen">
+
+
+<h2>Saved Designs</h2>
+
+
+<div id="savedList"></div>
+
+
+<button onclick="goHome()">
+Back
+</button>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<div id="libraryScreen">
+
+
+<h2>Motif Library</h2>
+
+
+<button onclick="loadMotif()">
+Load Simple Motif
+</button>
+
+
+<button onclick="goHome()">
+Back
+</button>
+
+
+</div>
+
+
+
+
+
+
+
+
+<script>
+
+
+let tool="draw";
+
+let color="red";
+
+let currentCells=[];
+
+
+const grid=document.getElementById("grid");
+
+
+
+for(let i=0;i<256;i++){
+
+
+let c=document.createElement("div");
+
+
+c.className="cell";
+
+
+c.onclick=function(){
+
+
+if(tool=="draw")
+
+c.style.backgroundColor=color;
+
+
+else
+
+c.style.backgroundColor="white";
+
+
+updatePrice();
+
+
+};
+
+
+
+grid.appendChild(c);
+
+
+}
+
+
+
+
+
+
+function hideAll(){
+
+
+homeScreen.style.display="none";
+
+editorScreen.style.display="none";
+
+savedScreen.style.display="none";
+
+libraryScreen.style.display="none";
+
+
+}
+
+
+
+function openEditor(){
+
+
+hideAll();
+
+editorScreen.style.display="block";
+
+
+}
+
+
+
+function openSaved(){
+
+
+hideAll();
+
+savedScreen.style.display="block";
+
+
+displaySaved();
+
+
+}
+
+
+
+function openLibrary(){
+
+
+hideAll();
+
+libraryScreen.style.display="block";
+
+
+}
+
+
+
+function goHome(){
+
+
+hideAll();
+
+homeScreen.style.display="block";
+
+
+}
+
+
+
+
+
+
+
+function setColor(c){
+
+color=c;
+
+}
+
+
+
+
+
+
+function clearGrid(){
+
+
+document.querySelectorAll(".cell")
+.forEach(c=>{
+
+c.style.backgroundColor="white";
+
+});
+
+
+}
+
+
+
+
+
+
+
+function getDesign(){
+
+
+let data=[];
+
+
+document.querySelectorAll(".cell")
+.forEach(c=>{
+
+data.push(c.style.backgroundColor || "white");
+
+
+});
+
+
+return data;
+
+
+}
+
+
+
+
+
+function loadDesign(data){
+
+
+let cells=document.querySelectorAll(".cell");
+
+
+cells.forEach((c,i)=>{
+
+c.style.backgroundColor=data[i];
+
+});
+
+
+updatePrice();
+
+
+}
+
+
+
+
+
+
+
+function saveDesign(){
+
+
+let designs=
+JSON.parse(localStorage.getItem("designs")||"[]");
+
+
+
+let design={
+
+
+name:
+designName.value || "Untitled",
+
+
+notes:
+notes.value,
+
+
+cells:
+getDesign()
+
+
+};
+
+
+
+designs.push(design);
+
+
+
+localStorage.setItem(
+"designs",
+JSON.stringify(designs)
+);
+
+
+
+alert("Design Saved");
+
+
+}
+
+
+
+
+
+
+
+
+
+function displaySaved(){
+
+
+let box=document.getElementById("savedList");
+
+
+box.innerHTML="";
+
+
+
+let designs=
+JSON.parse(localStorage.getItem("designs")||"[]");
+
+
+
+designs.forEach((d,i)=>{
+
+
+let div=document.createElement("div");
+
+
+div.innerHTML=
+
+d.name+
+
+"<br>"+
+
+
+"<button onclick='openSavedDesign("+i+")'>Open</button>"+
+
+"<button onclick='duplicateDesign("+i+")'>Duplicate</button>"+
+
+"<button onclick='deleteDesign("+i+")'>Delete</button>";
+
+
+
+box.appendChild(div);
+
+
+});
+
+
+}
+
+
+
+
+
+
+
+function openSavedDesign(i){
+
+
+let designs=
+JSON.parse(localStorage.getItem("designs"));
+
+
+
+openEditor();
+
+
+designName.value=
+designs[i].name;
+
+
+notes.value=
+designs[i].notes;
+
+
+
+loadDesign(designs[i].cells);
+
+
+}
+
+
+
+
+
+
+function duplicateDesign(i){
+
+
+let designs=
+JSON.parse(localStorage.getItem("designs"));
+
+
+
+let copy=
+JSON.parse(JSON.stringify(designs[i]));
+
+
+
+copy.name+=" Copy";
+
+
+
+designs.push(copy);
+
+
+
+localStorage.setItem(
+"designs",
+JSON.stringify(designs)
+);
+
+
+
+displaySaved();
+
+
+}
+
+
+
+
+
+
+function deleteDesign(i){
+
+
+let designs=
+JSON.parse(localStorage.getItem("designs"));
+
+
+
+designs.splice(i,1);
+
+
+
+localStorage.setItem(
+"designs",
+JSON.stringify(designs)
+);
+
+
+
+displaySaved();
+
+
+}
+
+
+
+
+
+
+
+
+function updatePrice(){
+
+
+let filled=0;
+
+
+document.querySelectorAll(".cell")
+.forEach(c=>{
+
+
+if(c.style.backgroundColor!="white")
+
+filled++;
+
+
+});
+
+
+
+price.innerHTML=
+306+
+filled*2;
+
+
+}
+
+
+
+
+
+
+
+
+function exportImage(){
+
+
+let canvas=document.createElement("canvas");
+
+
+canvas.width=480;
+
+canvas.height=480;
+
+
+
+let ctx=canvas.getContext("2d");
+
+
+
+let cells=document.querySelectorAll(".cell");
+
+
+
+cells.forEach((c,i)=>{
+
+
+ctx.fillStyle=
+c.style.backgroundColor || "white";
+
+
+ctx.fillRect(
+
+(i%16)*30,
+
+Math.floor(i/16)*30,
+
+30,
+
+30
+
+);
+
+
+});
+
+
+
+let a=document.createElement("a");
+
+
+a.href=canvas.toDataURL();
+
+
+a.download="motif.png";
+
+
+a.click();
+
+
+}
+
+
+
+
+
+
+function exportData(){
+
+
+let file=new Blob(
+
+[JSON.stringify(getDesign())],
+
+{type:"application/json"}
+
+);
+
+
+
+let a=document.createElement("a");
+
+
+a.href=
+URL.createObjectURL(file);
+
+
+a.download="motif.json";
+
+
+a.click();
+
+
+}
+
+
+
+
+
+
+
+function exportPDF(){
+
+
+const {jsPDF}=window.jspdf;
+
+
+let pdf=new jsPDF();
+
+
+pdf.text(
+"Motif Handover Summary",
+20,20);
+
+
+
+pdf.text(
+"Design: "+designName.value,
+20,40);
+
+
+pdf.text(
+"Price: ₹"+price.innerHTML,
+20,60);
+
+
+
+pdf.save(
+"handover.pdf"
+);
+
+
+}
+
+
+
+
+
+
+
+function loadMotif(){
+
+
+clearGrid();
+
+
+let cells=document.querySelectorAll(".cell");
+
+
+[119,120,121,135,136,137,151,152,153]
+.forEach(i=>{
+
+cells[i].style.backgroundColor="red";
+
+});
+
+
+}
+
+
+
+
+</script>
+
+
+</body>
+
+</html>
+
